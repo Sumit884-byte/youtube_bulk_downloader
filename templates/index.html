@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Bulk Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1>🎥 YouTube Bulk Downloader</h1>
+                <p>Download entire playlists and channels with ease</p>
+            </div>
+        </header>
+
+        <main class="content">
+            <!-- Input Section -->
+            <section class="section input-section">
+                <h2>Start Download</h2>
+                
+                <div class="form-group">
+                    <label for="download-type">Download Type</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="download-type" value="playlist" checked>
+                            <span>Playlist</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="download-type" value="channel">
+                            <span>Channel</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="url-input">URL or Channel Handle</label>
+                    <input 
+                        type="text" 
+                        id="url-input" 
+                        class="input-field" 
+                        placeholder="Paste playlist URL or @channel_handle"
+                    >
+                    <small id="url-hint" class="hint">Paste a full YouTube URL or just the channel handle (e.g., @mkbhd)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="quality-select">Video Quality</label>
+                    <select id="quality-select" class="select-field">
+                        <option value="1080">1080p (Best)</option>
+                        <option value="720">720p</option>
+                        <option value="480">480p (Faster)</option>
+                    </select>
+                </div>
+
+                <button id="start-btn" class="btn btn-primary">Start Download</button>
+            </section>
+
+            <!-- Status Section -->
+            <section class="section status-section" id="status-section" style="display: none;">
+                <h2>Download Progress</h2>
+                
+                <div class="status-info">
+                    <div class="info-item">
+                        <span class="label">Folder:</span>
+                        <span id="folder-name" class="value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Status:</span>
+                        <span id="status-text" class="value">Idle</span>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="progress-count">0 / 0</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                </div>
+
+                <div class="current-video">
+                    <span class="label">Currently Processing:</span>
+                    <span id="current-video-name">-</span>
+                </div>
+            </section>
+
+            <!-- Logs Section -->
+            <section class="section logs-section">
+                <h2>Logs</h2>
+                <div id="logs-container" class="logs-container">
+                    <p class="empty-message">Logs will appear here during download...</p>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section class="section history-section">
+                <h2>Download History</h2>
+                <div id="history-container" class="history-container">
+                    <p class="empty-message">No download history yet</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>YouTube Bulk Downloader • Powered by yt-dlp</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
