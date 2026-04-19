@@ -54,6 +54,18 @@
                     </select>
                 </div>
 
+                <div class="form-group" id="limit-group" style="display: none;">
+                    <label for="limit-input">Max Videos (Latest)</label>
+                    <input 
+                        type="number" 
+                        id="limit-input" 
+                        class="input-field" 
+                        placeholder="e.g. 5 (Leave empty for all)"
+                        min="1"
+                    >
+                    <small class="hint">Download only the N latest videos from the channel</small>
+                </div>
+
                 <button id="start-btn" class="btn btn-primary">Start Download</button>
             </section>
 

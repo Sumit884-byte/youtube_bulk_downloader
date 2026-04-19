@@ -11,6 +11,8 @@ const currentVideoName = document.getElementById('current-video-name');
 const statusText = document.getElementById('status-text');
 const folderName = document.getElementById('folder-name');
 const downloadTypeRadios = document.querySelectorAll('input[name="download-type"]');
+const limitInput = document.getElementById('limit-input');
+const limitGroup = document.getElementById('limit-group');
 const historyContainer = document.getElementById('history-container');
 
 // State
@@ -32,8 +34,11 @@ function updateUrlHint() {
     
     if (type === 'channel') {
         hint.textContent = 'Paste a full YouTube channel URL or just the channel handle (e.g., @mkbhd)';
+        limitGroup.style.display = 'block';
     } else {
         hint.textContent = 'Paste a full YouTube playlist URL';
+        limitGroup.style.display = 'none';
+        limitInput.value = '';
     }
 }
 
@@ -58,7 +63,8 @@ async function startDownload() {
             body: JSON.stringify({
                 url: url,
                 quality: quality,
-                type: type
+                type: type,
+                limit: limitInput.value
             })
         });
         
@@ -201,7 +207,8 @@ async function loadHistory() {
             
             const title = document.createElement('div');
             title.className = 'history-item-title';
-            title.textContent = `Last Video ID: ${lastVideoId}`;
+            const count = Array.isArray(lastVideoId) ? lastVideoId.length : 1;
+            title.textContent = `Downloaded: ${count} videos`;
             
             const urlEl = document.createElement('div');
             urlEl.className = 'history-item-url';

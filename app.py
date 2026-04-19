@@ -2,12 +2,19 @@ import subprocess
 import json
 import os
 import re
+import shutil
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime
 
 app = Flask(__name__)
+
+# Resolve yt-dlp path — prefer the venv's binary, fall back to system PATH
+YTDLP = shutil.which("yt-dlp", path=os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", ""))
+if not YTDLP:
+    raise RuntimeError("yt-dlp not found. Run: pip install yt-dlp")
 
 HISTORY_FILE = "download_history.json"
 BASE_DOWNLOAD_PATH = "/home/s/Videos/YoutubeDownloads"
@@ -33,7 +40,7 @@ def log_message(msg):
 def get_playlist_title(playlist_url):
     log_message("📥 Fetching official title...")
     result = subprocess.run([
-        "yt-dlp", "--yes-playlist", "--flat-playlist", "--playlist-end", "1", 
+        YTDLP, "--yes-playlist", "--flat-playlist", "--playlist-end", "1",
         "--print", "%(playlist_title)s|%(channel)s|%(uploader)s",
         "--no-warnings", playlist_url
     ], stdout=subprocess.PIPE, text=True)
@@ -51,22 +58,12 @@ def get_playlist_title(playlist_url):
                 return parts[0].replace(" - Videos", "")
                 
     result_fallback = subprocess.run([
-        "yt-dlp", "--get-title", "--flat-playlist", "--playlist-end", "1", "--no-warnings", playlist_url
+        YTDLP, "--get-title", "--flat-playlist", "--playlist-end", "1", "--no-warnings", playlist_url
     ], stdout=subprocess.PIPE, text=True)
     lines = result_fallback.stdout.strip().split("\n")
     return lines[0] if lines else "Unknown_Target"
 
-def load_last_video(playlist_url):
-    if not os.path.exists(HISTORY_FILE): 
-        return None
-    try:
-        with open(HISTORY_FILE, "r") as f:
-            history = json.load(f)
-        return history.get(playlist_url)
-    except:
-        return None
-
-def save_last_video(playlist_url, video_id):
+def save_history_entry(playlist_url, video_ids):
     history = {}
     if os.path.exists(HISTORY_FILE):
         try:
@@ -74,14 +71,14 @@ def save_last_video(playlist_url, video_id):
                 history = json.load(f)
         except: 
             pass
-    history[playlist_url] = video_id
+    history[playlist_url] = video_ids
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, indent=4)
 
 def get_video_ids(playlist_url):
     log_message("📥 Fetching all video IDs (this may take a moment for large playlists)...")
     result = subprocess.run([
-        "yt-dlp", "--flat-playlist", "--print", "id", "--yes-playlist", playlist_url
+        YTDLP, "--flat-playlist", "--print", "id", "--yes-playlist", playlist_url
     ], stdout=subprocess.PIPE, text=True)
     ids = [i.strip() for i in result.stdout.strip().split("\n") if i.strip()]
     log_message(f"✅ Found {len(ids)} videos.")
@@ -104,7 +101,7 @@ def single_video_worker(args):
     download_state["current_video"] = f"Video {formatted_index}"
     
     subprocess.run([
-        "yt-dlp", "-f", fmt, 
+        YTDLP, "-f", fmt,
         "--merge-output-format", "mp4",
         "--downloader-args", "ffmpeg:-threads 3",
         "-o", f"{save_path}/{formatted_index} - [No.{index}] %(title)s.%(ext)s",
@@ -138,7 +135,7 @@ def download_videos(all_video_ids, to_dl_ids, folder_name, quality):
     log_message("🏁 All tasks complete.")
     return True
 
-def perform_download(playlist_url, quality, download_type):
+def perform_download(playlist_url, quality, download_type, limit=None):
     """Perform download in a separate thread"""
     try:
         download_state["active"] = True
@@ -155,24 +152,35 @@ def perform_download(playlist_url, quality, download_type):
             download_state["status"] = "error"
             return
 
-        last = load_last_video(playlist_url)
+        # Load history of downloaded IDs
+        history = {}
+        if os.path.exists(HISTORY_FILE):
+            try:
+                with open(HISTORY_FILE, "r") as f:
+                    history = json.load(f)
+            except: pass
         
-        if last in video_ids:
-            start_index = video_ids.index(last) + 1
-            log_message(f"🔄 Resuming from video {start_index + 1}...")
-        else:
-            start_index = 0
-            log_message("🆕 Starting fresh download...")
+        downloaded_ids = set(history.get(playlist_url, []))
+        
+        # Filter out already downloaded videos
+        to_dl = [vid for vid in video_ids if vid not in downloaded_ids]
+        
+        # Apply limit if specified (take latest N)
+        if limit and limit > 0:
+            # yt-dlp usually returns latest first for channels, but to be sure:
+            # we take the first 'limit' videos from the ORIGINAL list that are NOT downloaded
+            to_dl = to_dl[:limit]
+            log_message(f"📍 Limited to {limit} newest videos.")
 
-        to_dl = video_ids[start_index:]
-        
         if not to_dl:
             log_message("✅ Everything is already downloaded.")
             download_state["status"] = "complete"
             return
 
         if download_videos(video_ids, to_dl, title, quality):
-            save_last_video(playlist_url, to_dl[-1])
+            # Update history with newly downloaded IDs
+            new_history = list(downloaded_ids.union(set(to_dl)))
+            save_history_entry(playlist_url, new_history)
             download_state["status"] = "complete"
         
     except Exception as e:
@@ -209,7 +217,13 @@ def start_download():
                 url = url.rstrip("/") + "/videos"
     
     # Start download in a background thread
-    thread = threading.Thread(target=perform_download, args=(url, quality, download_type))
+    limit = data.get('limit')
+    try:
+        limit = int(limit) if limit else None
+    except ValueError:
+        limit = None
+        
+    thread = threading.Thread(target=perform_download, args=(url, quality, download_type, limit))
     thread.daemon = True
     thread.start()
     
