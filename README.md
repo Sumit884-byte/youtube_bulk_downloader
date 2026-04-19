@@ -5,11 +5,12 @@ A modern web-based interface for bulk downloading YouTube playlists and channels
 ## Features
 
 - 📥 Download entire YouTube playlists or channels
+- 🚀 **Max Videos Limit**: Download only the N latest videos from a channel
 - 🎬 Multiple quality options (1080p, 720p, 480p)
 - ⚙️ 3-threaded parallel downloads for speed
 - 📊 Real-time progress tracking
+- 🔄 **Smart Duplicate Prevention**: Automatically skips videos you've already downloaded
 - 📝 Live logs and download history
-- 🔄 Resume incomplete downloads
 - 🎨 Dark theme UI with modern design
 
 ## Prerequisites
@@ -66,14 +67,15 @@ The server will start at `http://localhost:5000`
    - For playlists: Paste the full YouTube playlist URL
    - For channels: Paste the URL or just the handle (e.g., @mkbhd)
 3. **Select Quality**: Choose your preferred video quality
-4. **Click Start Download**: The download will begin in the background
+4. **Set Max Videos (Optional)**: For channels, specify how many latest videos to download
+5. **Click Start Download**: The download will begin in the background
 
 ### Features
 
 - **Real-time Progress**: Watch the download progress update in real-time
 - **Live Logs**: See exactly what's happening during download
-- **Resume Downloads**: If interrupted, the downloader will resume from the last video
-- **Download History**: Quick access to previously downloaded playlists/channels
+- **Smart Resume**: The app tracks every downloaded video ID to ensure no duplicates are ever downloaded, even if the index changes.
+- **Download History**: Quick access to previously downloaded playlists/channels and their download counts.
 
 ## File Structure
 
